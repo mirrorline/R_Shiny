@@ -9,24 +9,26 @@ library(tidyr)
 library(ggplot2)
 library(lubridate)
 
-setwd("C:\\Users\\Administrator\\Desktop\\Labour Day R Shiny Project")
+# The above done
+
+#setwd("C:\\Users\\Administrator\\Desktop\\R_projects\\R_Shiny")
 
 ###IMPORT DATA
 #download master repo from NYC DoH Github
 
-download.file(url = "https://github.com/nychealth/coronavirus-data.git", 
-              destfile = "coronavirus-data-master.zip")
-unzip(zipfile = "coronavirus-data-master.zip")
+#download.file(url = "https://raw.githubusercontent.com/nychealth/coronavirus-data/refs/heads/master/trends/caserate-by-modzcta.csv", 
+              destfile = "caserate-by-modzcta.csv")
+#unzip(zipfile = "coronavirus-data-master.zip")
 
 #read in data
 
 percentpos <- vroom("coronavirus-data-master/trends/percentpositive-by-modzcta.csv")
-caserate <- vroom("coronavirus-data-master/trends/caserate-by-modzcta.csv")
+caserate <- vroom("caserate-by-modzcta.csv", delim = ",")   #>>Done
 testrate <- vroom("coronavirus-data-master/trends/testrate-by-modzcta.csv")
 
 #read in modzcta shapefile and zcta conversion table
-modzcta <- st_read("coronavirus-data-master/Geography-resources/MODzCTA_2010.shp")
-zcta_conv <- vroom("coronavirus-data-master/Geography-resources/ZCTA-to-MODZCTA.csv", delim = ",")
+modzcta <- st_read('MODZCTA_2010.shp') #Done
+zcta_conv <- vroom("https://raw.githubusercontent.com/nychealth/coronavirus-data/refs/heads/master/Geography-resources/ZCTA-to-MODZCTA.csv", delim = ",") #Done
 
 
 ### CLEAN DATA
@@ -35,8 +37,8 @@ zcta_conv <- vroom("coronavirus-data-master/Geography-resources/ZCTA-to-MODZCTA.
 caserates <- caserate %>% select(-c(2:7))
 caserates_long <- caserates %>%
   pivot_longer(2:178, names_to = "modzcta",
-               names_prefix = "CASERATE_", values_to = "caserate")
-
+               names_prefix = "CASERATE_", values_to = "caserate") ##Done
+'''
 #clean and reshape percentpos data
 percentpositives <- percentpos %>% select(-c(2:7))
 percentpos_long <- percentpositives %>%
@@ -48,15 +50,19 @@ testrates <- testrate %>% select(-c(2:7))
 testrates_long <- testrates %>%
   pivot_longer(2:178, names_to = "modzcta", 
                names_prefix = "TESTRATE_", values_to = "testrate")
-
+'''
+# Skipped
 
 
 ### MERGE IN GEOGRAPHY DATA
 #combine all three long data frames into one df
 
-all <- caserates_long %>% 
+# Skipped
+'''
+# all <- caserates_long %>% 
   left_join(percentpos_long, by = c("week_ending","modzcta")) %>% 
   left_join(testrates_long, by = c("week_ending","modzcta"))
+  '''
 
 
 #merge covid data with zcta shapefile
@@ -65,8 +71,9 @@ all <- caserates_long %>%
 #                        how = "inner")
 
 
-all_modzcta <- inner_join(modzcta, all, by = c('MODZCTA'='modzcta'))
-View(all_modzcta)
+# Skipped
+#all_modzcta <- inner_join(modzcta, all, by = c('MODZCTA'='modzcta'))
+#View(all_modzcta)
 
 date <-as
 
@@ -75,6 +82,7 @@ date <-as
 #NOTE: modzcta and zcta are not the same, as modzctas can encompass severall small zctas!
 #code below *would* switch between, but multiple zctas can map to one modzcta, so leaving ....
 # all_modzcta$MODZCTA <- zcta_conv$ZCTA[match(all_modzcta$MODZCTA, zcta_conv$MODZCTA)]
+all_modzcta$modzcta <- zcta_conv$ZCTA[match(all_modzcta$modzcta, zcta_conv$MODZCTA)]
 
 #convert week_ending from a character to a date
 all_modzcta$week_ending <- as.factor(all_modzcta$week_ending)
@@ -83,7 +91,9 @@ all_modzcta$week_ending <- as.Date(all_modzcta$week_ending,format = "%m/%d/%Y")
 
 
 #save df for Shiny app
-saveRDS(all_modzcta, "all_modzcta.RDS") this is an addition to it
+# this is an addition to it
+
+saveRDS(all_modzcta, "all_modzcta.RDS") 
 
 ### DATA INSPECTION
 #check distribution of caserate data
