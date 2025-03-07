@@ -22,9 +22,9 @@ library(lubridate)
 
 #read in data
 
-percentpos <- vroom("coronavirus-data-master/trends/percentpositive-by-modzcta.csv")
+#percentpos <- vroom("coronavirus-data-master/trends/percentpositive-by-modzcta.csv")
 caserate <- vroom("caserate-by-modzcta.csv", delim = ",")   #>>Done
-testrate <- vroom("coronavirus-data-master/trends/testrate-by-modzcta.csv")
+#testrate <- vroom("coronavirus-data-master/trends/testrate-by-modzcta.csv")
 
 #read in modzcta shapefile and zcta conversion table
 modzcta <- st_read('MODZCTA_2010.shp') #Done
@@ -38,6 +38,7 @@ caserates <- caserate %>% select(-c(2:7))
 caserates_long <- caserates %>%
   pivot_longer(2:178, names_to = "modzcta",
                names_prefix = "CASERATE_", values_to = "caserate") ##Done
+
 '''
 #clean and reshape percentpos data
 percentpositives <- percentpos %>% select(-c(2:7))
@@ -65,14 +66,17 @@ testrates_long <- testrates %>%
   '''
 
 
-#merge covid data with zcta shapefile
-#all_modzcta <- geo_join(modzcta, all,
-#                        'MODZCTA', 'modzcta',
-#                        how = "inner")
+#merge covid data with zcta shapefile >> Done
+all_modzcta <- geo_join(modzcta, caserates_long,
+                        'MODZCTA', 'modzcta',
+                        how = "inner")
 
 
-# Skipped
-#all_modzcta <- inner_join(modzcta, all, by = c('MODZCTA'='modzcta'))
+all_modzcta <- inner_join(modzcta, caserates_long, by = c('MODZCTA'='modzcta'))
+
+
+# Done
+all_modzcta <- inner_join(modzcta, caserates_long, by = c('MODZCTA'='modzcta'))
 #View(all_modzcta)
 
 date <-as
@@ -82,7 +86,8 @@ date <-as
 #NOTE: modzcta and zcta are not the same, as modzctas can encompass severall small zctas!
 #code below *would* switch between, but multiple zctas can map to one modzcta, so leaving ....
 # all_modzcta$MODZCTA <- zcta_conv$ZCTA[match(all_modzcta$MODZCTA, zcta_conv$MODZCTA)]
-all_modzcta$modzcta <- zcta_conv$ZCTA[match(all_modzcta$modzcta, zcta_conv$MODZCTA)]
+all_modzcta$MODZCTA <- zcta_conv$ZCTA[match(all_modzcta$MODZCTA, zcta_conv$MODZCTA)]
+
 
 #convert week_ending from a character to a date
 all_modzcta$week_ending <- as.factor(all_modzcta$week_ending)
@@ -103,20 +108,22 @@ all_modzcta %>%
   geom_histogram(bins=50, fill='#69b3a2', color='white')
 
 
-------------------------------------------------------------------------------------------------------------------------------
 
 ###MAKE INTERACTIVE MAP OF CASERATE
-labels <- sprintf("<strong>%s</strong><br/>%g cases per 100,000 people",all_modzcta$MODZCTA, all_modzcta$caserate) %>% 
+labels <- sprintf("<strong>%s</strong><br/>%g cases per 100,000 people", all_modzcta$MODZCTA, all_modzcta$caserate) %>% 
   lapply(htmltools::HTML)
 
-  pal <- colorBin(palette = "OrRd", 9, domain = all_modzcta$caserate)
-  #pal <- colorNumeric(palette = "OrRd", domain = all_zcta$caserate)
+pal <- colorBin(palette = "OrRd", 9, domain = all_modzcta$caserate)
+#pal <- colorNumeric(palette = "OrRd", domain = all_modzcta$caserate) #Check on this
 
-  map_interactive <- all_modzcta %>% 
-    st_transform(crs = "+init=epsg:4326") %>% 
-    leaflet() %>% 
-    addProviderTiles(provider = "CartoDB.Positron") %>% 
-    addPolygons(label = labels,
+
+#Made the following change
+#st_transform(crs = "+init=epsg:4326")
+map_interactive <- all_modzcta %>% 
+  st_transform(crs = st_crs(4326)) %>% 
+  leaflet() %>% 
+  addProviderTiles(provider = "CartoDB.Positron") %>% 
+  addPolygons(label = labels,
               stroke = FALSE,
               smoothFactor = .5,
               opacity = 1,
@@ -127,14 +134,12 @@ labels <- sprintf("<strong>%s</strong><br/>%g cases per 100,000 people",all_modz
                                                   color = "black",
                                                   opacity = 1,
                                                   bringToFront = TRUE
-                                                  ))
-
-  
+                                                  )) %>% 
   addLegend("bottomright",
-          pal = pal,
-          values = all_modzcta$caserate,
-        title = "Cases Per 100,00",
-          opacity = 0.7)
+            pal = pal,
+            values = all_modzcta$caserate,
+            title = "Cases Per 100,00",
+            opacity = 0.7)
 
 saveWidget(map_interactive, "nyc_covid_caserate_map.html")
 
@@ -142,7 +147,13 @@ map_interactive
 
 
 
-
 install.packages("pryr")
 library(pryr)
 mem_used()
+
+
+
+map <- leaflet() %>%
+  addTiles() %>%
+  setView(lng = -74.0060, lat = 40.7128, zoom = 12) %>% # Set the map's initial view
+  addMarkers(lng = -74.0060, lat = 40.7128, popup = "New York City") # Add a marker
