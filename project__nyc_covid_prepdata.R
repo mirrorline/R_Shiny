@@ -94,11 +94,13 @@ all_modzcta$week_ending <- as.factor(all_modzcta$week_ending)
 #all_modzcta$week_ending <- strptime(all_modzcta$week_ending,format = "%m/%d/%Y") this part is not necessarily necessary
 all_modzcta$week_ending <- as.Date(all_modzcta$week_ending,format = "%m/%d/%Y")
 
+all_modzcta_sf <- st_as_sf(all_modzcta, wkt = "geometry" )
 
 #save df for Shiny app
 # this is an addition to it
 
-saveRDS(all_modzcta, "all_modzcta.RDS") 
+saveRDS(all_modzcta, "all_modzcta.RDS")
+saveRDS(small_zcta, "small_zcta.RDS")
 
 ### DATA INSPECTION
 #check distribution of caserate data
@@ -119,7 +121,7 @@ pal <- colorBin(palette = "OrRd", 9, domain = all_modzcta$caserate)
 
 #Made the following change
 #st_transform(crs = "+init=epsg:4326")
-map_interactive <- all_modzcta %>% 
+map_interactive <- small_zcta %>% 
   st_transform(crs = st_crs(4326)) %>% 
   leaflet() %>% 
   addProviderTiles(provider = "CartoDB.Positron") %>% 
